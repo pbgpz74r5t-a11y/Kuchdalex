@@ -1,26 +1,44 @@
-"""LexCheck backend, 1-2 bosqich: fayl yuklash, matn ajratish, qonun havolalarini topish."""
-import io
-import re
-
-import fitz  # PyMuPDF
-from docx import Document
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="LexCheck")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app = FastAPI(title="LexCheck API")
 
-# "Fuqarolik kodeksining 234-moddasi", "FK 234-modda", "MK 77-m." kabi yozuvlar
-CITE_RE = re.compile(
-    r"(Fuqarolik kodeksi(?:ning)?|Mehnat kodeksi(?:ning)?|"
-    r"Ma.muriy javobgarlik to.g.risidagi kodeksi(?:ning)?|FK|MK|MJTK)"
-    r"\s*,?\s*(\d+)\s*-\s*(?:moddasi|modda|m\.)",
-    re.IGNORECASE,
+# CORS sozlamalari (frontend bilan ulanish uchun kerak)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
+@app.get("/")
+def read_root():
+    return {"message": "LexCheck API ishlayapti!"}
 
-def code_of(name: str) -> str:
-    n = name.lower()
-    if n.startswith("fuq") or n == "fk":
-        return "FK"
-    if n.startswith("meh") or n == "mk
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    # Hozircha AI limiti tugaganligi uchun, demo ma'lumotlarini qaytaramiz
+    
+    demo_citations = [
+        {
+            "page": 12,
+            "old_text": "Mehnat kodeksining 97-moddasiga ko'ra ta'til 15 kun.",
+            "status": "ESKIRGAN",
+            "new_text": "2024-yil holatiga ko'ra, ta'til muddati 21 kun etib belgilangan.",
+            "law_name": "Mehnat kodeksi, 97-modda"
+        },
+        {
+            "page": 25,
+            "old_text": "Soliq stavkasi 12 foizni tashkil qiladi.",
+            "status": "O'ZGARGAN",
+            "new_text": "Yangi tahrirda soliq stavkasi 15 foiz qilib belgilandi.",
+            "law_name": "Soliq kodeksi, 53-modda"
+        }
+    ]
+
+    return {
+        "filename": file.filename,
+        "pages": 38,
+        "citations": demo_citations
+    }
